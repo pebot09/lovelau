@@ -621,10 +621,10 @@ function DivergenceChart({ onNext }) {
         <AnimatePresence>
           {tip && (
             <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: '-50%', y: '-112%' }}
+              animate={{ opacity: 1, x: '-50%', y: '-118%' }}
               exit={{ opacity: 0 }}
-              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[120%] rounded-lg border border-white/10 bg-[#161616] px-2.5 py-1.5 text-[11px] shadow-xl"
+              className="pointer-events-none absolute z-10 rounded-lg border border-white/10 bg-[#161616] px-2.5 py-1.5 text-[11px] shadow-xl"
               style={{
                 left: `${(Math.min(Math.max(tip.px, 52), W - 52) / W) * 100}%`,
                 top: `${(tip.py / H) * 100}%`,

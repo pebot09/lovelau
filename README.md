@@ -24,10 +24,9 @@ npm run build    # gera dist/
 | 2 | O Começo | Chat WhatsApp animado → vídeo → modal de trivia → gráfico de divergência |
 | 3 | Você me conhece? | 3 jogos: quem disse isso (7 rodadas) · te amo primeiro · o que veio depois |
 | 4 | A linguagem de vocês | Quiz (4 perguntas) + 6 painéis de dados |
-| 5+ | _continua…_ | Caps 5, 6 e 7 chegam na próxima sessão |
-
-Para adicionar um capítulo novo: criar `src/components/CapXX_Nome.jsx`
-(recebe `onNext` como prop) e registrar no array `CHAPTERS` do `src/App.jsx`.
+| 5 | Álbum | Jogo de ordenação · cenas e carrosséis · adivinhe onde foi · modal princesa · mini-álbum da comida gamificado 🍗 |
+| 6 | Quiz de dados | 6 perguntas (1 especial com timeline arrastável) |
+| 7 | Hoje | Texto em camadas · o argumento com o claude · FELIZ UM ANO DE NAMORO (fim — sem recomeçar) |
 
 ## ✋ Placeholders pendentes (Pedro)
 
@@ -35,13 +34,24 @@ Buscar por `PLACEHOLDER` no código:
 
 1. **Foto do card Bumble** — `src/components/Cap01_Bumble.jsx` (trocar o bloco gradiente por `<img>`)
 2. **Bio do card Bumble** — mesmo arquivo
-3. **Vídeos** — colocar os `.mov` em `public/videos/` (ver `public/videos/README.md`). O Cap 2 usa `IMG_0574.mov`; sem o arquivo, o app mostra um placeholder e segue o fluxo.
+3. **Vídeos** — colocar os `.mov` em `public/videos/` (ver `public/videos/README.md`). Cap 2 usa `IMG_0574.mov`; Cap 5 usa `IMG_2128.mov`, `IMG_4006.mov` e `IMG_4158.mov`. Sem o arquivo, o app mostra um placeholder e segue o fluxo.
+4. **Fotos de comida** — preencher as 27 URLs do Cloudinary em `FOOD_PHOTOS` (`src/data/data.js`)
+5. **Laura mordendo asinha** — ajustar `LAURA_ASINHA_INDEX` em `src/data/data.js` (foto da barrinha do franguinho)
+6. **Foto de fundo do Cap 7** — URL do iCloud em `DATA.cap7.foto_fundo` (`src/data/data.js`)
 
 ## Deploy (GitHub Pages)
 
+**Opção A — automático (recomendado):**
 1. Uma vez só: **Settings → Pages → Source: GitHub Actions**
 2. Push na `main` → o workflow `.github/workflows/deploy.yml` builda e publica
-3. URL final: `https://pebot09.github.io/lovelau/`
+
+**Opção B — manual via gh-pages:**
+```bash
+npm run deploy   # builda e publica na branch gh-pages
+```
+(nesse caso: **Settings → Pages → Source: Deploy from a branch → gh-pages**)
+
+URL final: `https://pebot09.github.io/lovelau/`
 
 ## Dados
 

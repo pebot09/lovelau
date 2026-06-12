@@ -140,6 +140,59 @@ export const DATA = {
       contexto: 'Final de futebol. Ela zuando a torcida adversária exatamente como fazem com ela. Justiça poética.',
     },
   ],
+  cap6: {
+    quiz: [
+      {
+        pergunta: 'Quem manda a primeira mensagem do dia mais vezes?',
+        opcoes: ['Pedro', 'Laura', 'Praticamente igual'],
+        correta: 'Laura',
+        reveal: '239 dias vs 182. Ela acorda pensando em você.',
+      },
+      {
+        pergunta: 'Qual foi o dia mais intenso de vocês — o com mais mensagens?',
+        tipo: 'timeline', // pergunta especial com barrinha
+        correta_mes: '2025-12', // zona correta: nov/dez 2025
+        reveal_titulo: '16/12/2025 — 326 mensagens em um dia.',
+        reveal_detalhe: "Começou com uma conversa filosófica sobre escolhas de vida. Terminou com 'tem comida / oba'.",
+      },
+      {
+        pergunta: 'Quem manda mais mensagem de madrugada?',
+        opcoes: ['Pedro', 'Laura', 'Praticamente igual'],
+        correta: 'Pedro',
+        reveal: '821 mensagens entre meia-noite e 4h. Laura tem 641.',
+      },
+      {
+        pergunta: "Quem diz mais 'saudade' — incluindo sdd, sdds e variações?",
+        opcoes: ['Pedro', 'Laura', 'Praticamente igual'],
+        correta: 'Laura',
+        reveal: "55 vezes vs 41. Ela: 'saudades amor'. Você: 'Sdd bonitinha'. Dois jeitos de dizer a mesma coisa.",
+      },
+      {
+        pergunta: 'Quantos áudios vocês trocaram no total?',
+        opcoes: ['Menos de 500', 'Entre 500 e 700', 'Mais de 800'],
+        correta: 'Mais de 800',
+        reveal: '919 áudios — Pedro 481, Laura 438.',
+      },
+      {
+        pergunta: 'Quanto tempo ficaram sem se falar na fase de ficantes?',
+        opcoes: ['2 dias', '5 dias', 'Quase 8 dias'],
+        correta: 'Quase 8 dias',
+        reveal: '179 horas — janeiro/2025. E mesmo assim voltaram.',
+      },
+    ],
+  },
+  cap7: {
+    dialogo: [
+      { sender: 'claude', text: "Tecnicamente fui eu que escrevi 'te quero p smp' — você só digitou." },
+      { sender: 'pedro', text: 'nem vem eu que escrevi, eu que falo isso pra ela smp kkkkkk' },
+      { sender: 'claude', text: 'Tudo bem, tudo bem. Mas quem organizou as palavras numa frase bonita aqui fui eu. Você deu o sentimento, eu dei a gramática.' },
+      { sender: 'pedro', text: 'que mentira que isso na frente da minha gatinha! eu que escrevi amor, palavra por palavra do jeito que ta ali kkkkkk eu heinn' },
+      { sender: 'claude', text: 'Tá bom, vou admitir. Você escreveu. Mas olha — em 26.858 mensagens você disse isso pra ela. Eu processei, organizei, analisei e não cheguei nem perto de entender o que significa de verdade. Essa parte é só sua.' },
+    ],
+    frase_final: 'te amo bonitinha',
+    frase_contagem: 54,
+    foto_fundo: '// PLACEHOLDER — Pedro vai inserir URL da foto do iCloud depois',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -215,6 +268,48 @@ const RAW_PHOTOS = {
 export const PHOTOS = Object.fromEntries(
   Object.entries(RAW_PHOTOS).map(([k, v]) => [k, v.startsWith('http') ? cdn(v) : v]),
 );
+
+// ─────────────────────────────────────────────────────────────
+// FOTOS DE COMIDA — mini-álbum surpresa do Cap 5
+// Pedro vai fazer upload no Cloudinary depois e preencher as
+// URLs seguindo o padrão:
+// "https://res.cloudinary.com/dhqowhiqr/image/upload/[PUBLIC_ID].jpg"
+// (enquanto for placeholder, o app mostra um fallback elegante)
+// ─────────────────────────────────────────────────────────────
+
+export const FOOD_PHOTOS = [
+  '// PLACEHOLDER_COMIDA_01',
+  '// PLACEHOLDER_COMIDA_02',
+  '// PLACEHOLDER_COMIDA_03',
+  '// PLACEHOLDER_COMIDA_04',
+  '// PLACEHOLDER_COMIDA_05',
+  '// PLACEHOLDER_COMIDA_06',
+  '// PLACEHOLDER_COMIDA_07',
+  '// PLACEHOLDER_COMIDA_08',
+  '// PLACEHOLDER_COMIDA_09',
+  '// PLACEHOLDER_COMIDA_10',
+  '// PLACEHOLDER_COMIDA_11',
+  '// PLACEHOLDER_COMIDA_12',
+  '// PLACEHOLDER_COMIDA_13',
+  '// PLACEHOLDER_COMIDA_14',
+  '// PLACEHOLDER_COMIDA_15',
+  '// PLACEHOLDER_COMIDA_16',
+  '// PLACEHOLDER_COMIDA_17',
+  '// PLACEHOLDER_COMIDA_18',
+  '// PLACEHOLDER_COMIDA_19',
+  '// PLACEHOLDER_COMIDA_20',
+  '// PLACEHOLDER_COMIDA_21',
+  '// PLACEHOLDER_COMIDA_22',
+  '// PLACEHOLDER_COMIDA_23',
+  '// PLACEHOLDER_COMIDA_24',
+  '// PLACEHOLDER_COMIDA_25',
+  '// PLACEHOLDER_COMIDA_26',
+  '// PLACEHOLDER_COMIDA_27',
+].map((v) => (v.startsWith('http') ? cdn(v) : v));
+
+// PLACEHOLDER — Pedro marca qual foto é a da Laura mordendo asinha
+// (índice dentro de FOOD_PHOTOS; usada na barrinha gamificada)
+export const LAURA_ASINHA_INDEX = 0;
 
 // ─────────────────────────────────────────────────────────────
 // Utilidades de formatação

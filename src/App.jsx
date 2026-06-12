@@ -6,17 +6,21 @@ import Cap01_Bumble from './components/Cap01_Bumble';
 import Cap02_Comeco from './components/Cap02_Comeco';
 import Cap03_Conhece from './components/Cap03_Conhece';
 import Cap04_Linguagem from './components/Cap04_Linguagem';
-import Cap05_Continua from './components/Cap05_Continua';
+import Cap05_Album from './components/Cap05_Album';
+import Cap06_Quiz from './components/Cap06_Quiz';
+import Cap07_Hoje from './components/Cap07_Hoje';
 
 // Experiência linear e guiada: sem voltar, sem pular.
-// Capítulos novos (5, 6, 7…) entram aqui no final do array.
+// O app termina no Cap 7 — sem botão de recomeçar.
 const CHAPTERS = [
   Cap00_Boot,
   Cap01_Bumble,
   Cap02_Comeco,
   Cap03_Conhece,
   Cap04_Linguagem,
-  Cap05_Continua,
+  Cap05_Album,
+  Cap06_Quiz,
+  Cap07_Hoje,
 ];
 
 export default function App() {
