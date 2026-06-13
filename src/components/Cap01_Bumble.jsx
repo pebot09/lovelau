@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import {
-  AnimatePresence,
   animate,
   motion,
   useMotionTemplate,
@@ -78,7 +77,7 @@ export default function Cap01_Bumble({ onNext }) {
       {/* card */}
       <div className="relative flex w-full flex-1 items-center justify-center px-6">
         <motion.div
-          drag={matched ? false : 'x'}
+          drag="x"
           dragElastic={0.85}
           dragMomentum={false}
           onDragEnd={onDragEnd}
@@ -154,13 +153,12 @@ export default function Cap01_Bumble({ onNext }) {
       <div className="mt-3 font-mono text-[10px] tracking-widest text-white/25">( arrasta o card )</div>
 
       {/* É UM MATCH! */}
-      <AnimatePresence>
-        {matched && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm"
-          >
+      {matched && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm"
+        >
             <div className="relative">
               <motion.div
                 initial={{ scale: 0 }}
@@ -197,9 +195,8 @@ export default function Cap01_Bumble({ onNext }) {
             >
               É um Match!
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      )}
     </div>
   );
 }
