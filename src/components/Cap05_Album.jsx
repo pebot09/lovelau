@@ -110,19 +110,19 @@ export default function Cap05_Album({ onNext }) {
   }[phase];
 
   return (
-    <div className="h-full overflow-hidden bg-[#0a0a0a]">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={phase}
-          className="h-full"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.55, ease: 'easeInOut' }}
-        >
-          {content}
-        </motion.div>
-      </AnimatePresence>
+    <div className="relative h-full overflow-hidden bg-[#0a0a0a]">
+      {/* Sem exit/mode="wait": a fase anterior desmonta na hora e a nova
+          entra com fade. Evita o deadlock do AnimatePresence ao sair do
+          jogo de arrastar (que estava deixando a tela preta). */}
+      <motion.div
+        key={phase}
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.55, ease: 'easeInOut' }}
+      >
+        {content}
+      </motion.div>
     </div>
   );
 }
