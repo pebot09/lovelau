@@ -185,7 +185,7 @@ function Final() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-12 px-8 text-center">
       <div className="space-y-1.5">
-        {[DATA.cap7.frase_final, `dito ${DATA.cap7.frase_contagem} vezes.`, 'e contando.'].map((l, i) => (
+        {[DATA.cap7.frase_final, `dito ${DATA.cap7.frase_contagem} vezes online.`, 'e contando.'].map((l, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0 }}

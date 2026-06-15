@@ -685,7 +685,7 @@ function FoodAlbum({ onDone }) {
     const loop = (t) => {
       const dt = (t - prev) / 1000;
       prev = t;
-      if (t - lastTap.current > 400) setP((v) => (v > 0 ? Math.max(0, v - dt * 0.62) : v));
+      if (t - lastTap.current > 180) setP((v) => (v > 0 ? Math.max(0, v - dt * 1.8) : v));
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -706,7 +706,7 @@ function FoodAlbum({ onDone }) {
     lastTap.current = performance.now();
     s.bip();
     setI((n) => (n + 1) % FOOD_PHOTOS.length); // toque avança a foto
-    setP((v) => Math.min(1, v + 0.045)); // ~2 cliques/s mantém o progresso
+    setP((v) => Math.min(1, v + 0.028)); // nível hard: ritmo alto obrigatório
   };
 
   if (stage === 'text') {
