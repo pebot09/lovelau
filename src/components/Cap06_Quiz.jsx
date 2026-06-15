@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useMotionValue } from 'framer-motion';
+import { motion, useMotionValue } from 'framer-motion';
 import Typewriter from './shared/Typewriter';
 import useSounds from '../hooks/useSounds';
 import { ChoiceButton, ContinueButton, Overline } from './shared/ui';
@@ -15,26 +15,26 @@ export default function Cap06_Quiz({ onNext }) {
 
   return (
     <div className="h-full overflow-hidden bg-[#0a0a0a]">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={stage}
-          className="h-full"
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-        >
-          {stage === 'intro' && <Intro onDone={() => setStage('quiz')} />}
-          {stage === 'quiz' && (
-            <QuizFlow
-              quiz={quiz}
-              onCorrect={() => setScore((n) => n + 1)}
-              onDone={() => setStage('result')}
-            />
-          )}
-          {stage === 'result' && <Result score={score} total={quiz.length} onNext={onNext} />}
-        </motion.div>
-      </AnimatePresence>
+      {/* Sem AnimatePresence mode="wait"/exit: a etapa anterior desmonta
+          na hora e a nova entra com fade+slide. Evita o deadlock do
+          framer ao trocar de etapa após o arrasto do timeline. */}
+      <motion.div
+        key={stage}
+        className="h-full"
+        initial={{ opacity: 0, x: 24 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
+      >
+        {stage === 'intro' && <Intro onDone={() => setStage('quiz')} />}
+        {stage === 'quiz' && (
+          <QuizFlow
+            quiz={quiz}
+            onCorrect={() => setScore((n) => n + 1)}
+            onDone={() => setStage('result')}
+          />
+        )}
+        {stage === 'result' && <Result score={score} total={quiz.length} onNext={onNext} />}
+      </motion.div>
     </div>
   );
 }
@@ -80,22 +80,23 @@ function QuizFlow({ quiz, onCorrect, onDone }) {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={qi}
-          className="flex flex-1 flex-col justify-center"
-          initial={{ opacity: 0, x: 26 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -26 }}
-          transition={{ duration: 0.45, ease: 'easeInOut' }}
-        >
-          {q.tipo === 'timeline' ? (
-            <TimelineQuestion q={q} btnLabel={btnLabel} onComplete={complete} />
-          ) : (
-            <StandardQuestion q={q} btnLabel={btnLabel} onComplete={complete} />
-          )}
-        </motion.div>
-      </AnimatePresence>
+      {/* Sem AnimatePresence mode="wait"/exit: a pergunta anterior
+          desmonta na hora e a próxima entra com fade+slide. A pergunta do
+          timeline usa arrasto, e o mode="wait" travava a virada pra
+          próxima pergunta — deixando a tela preta. */}
+      <motion.div
+        key={qi}
+        className="flex flex-1 flex-col justify-center"
+        initial={{ opacity: 0, x: 26 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.45, ease: 'easeInOut' }}
+      >
+        {q.tipo === 'timeline' ? (
+          <TimelineQuestion q={q} btnLabel={btnLabel} onComplete={complete} />
+        ) : (
+          <StandardQuestion q={q} btnLabel={btnLabel} onComplete={complete} />
+        )}
+      </motion.div>
     </div>
   );
 }
