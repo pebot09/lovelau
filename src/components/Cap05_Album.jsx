@@ -383,20 +383,25 @@ function GrandeDia({ onDone }) {
     <motion.div
       animate={{ opacity: out ? 0 : 1 }}
       transition={{ duration: 0.8 }}
-      className="flex h-full items-center justify-center px-10"
+      className="relative h-full w-full overflow-hidden bg-black"
     >
-      <div className="text-center font-display text-2xl font-light italic leading-relaxed text-white/90">
-        {words.map((w, i) => (
-          <motion.span
-            key={i}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 + i * 0.45, duration: 0.8 }}
-            className="mr-2 inline-block"
-          >
-            {w}
-          </motion.span>
-        ))}
+      {/* IMG_0500 ao fundo (inteira, sem corte) com escurecido pra leitura */}
+      <Media item={img(PHOTOS.IMG_0500)} fit="contain" />
+      <div className="pointer-events-none absolute inset-0 bg-black/60" />
+      <div className="absolute inset-0 flex items-center justify-center px-10">
+        <div className="text-center font-display text-2xl font-light italic leading-relaxed text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
+          {words.map((w, i) => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 + i * 0.45, duration: 0.8 }}
+              className="mr-2 inline-block"
+            >
+              {w}
+            </motion.span>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
