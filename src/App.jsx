@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { unlockAudio } from './hooks/useSounds';
 import Cap00_Boot from './components/Cap00_Boot';
 import Cap01_Bumble from './components/Cap01_Bumble';
@@ -37,19 +37,22 @@ export default function App() {
   const next = () => setChapter((c) => Math.min(c + 1, CHAPTERS.length - 1));
 
   return (
-    <div className="h-dvh w-full select-none overflow-hidden bg-ink font-sans text-neutral-100">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={chapter}
-          className="h-full w-full"
-          initial={{ opacity: 0, x: 28 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -28 }}
-          transition={{ duration: 0.55, ease: 'easeInOut' }}
-        >
-          <Current onNext={next} />
-        </motion.div>
-      </AnimatePresence>
+    <div className="relative h-dvh w-full select-none overflow-hidden bg-ink font-sans text-neutral-100">
+      {/* Sem AnimatePresence mode="wait"/exit: o capítulo anterior
+          desmonta na hora e o próximo entra com fade+slide. O mode="wait"
+          condicionava a montagem do próximo capítulo ao fim da animação
+          de saída do anterior — e essa saída travava quando o capítulo
+          tinha estado de gesto (drag) pendente do framer (ex.: o jogo de
+          arrastar do Cap 5), deixando a tela preta na virada de capítulo. */}
+      <motion.div
+        key={chapter}
+        className="absolute inset-0"
+        initial={{ opacity: 0, x: 28 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.55, ease: 'easeInOut' }}
+      >
+        <Current onNext={next} />
+      </motion.div>
     </div>
   );
 }
