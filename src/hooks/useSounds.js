@@ -4,6 +4,8 @@
 // ─────────────────────────────────────────────────────────────
 
 let _ctx = null;
+let _unlocked = false;
+let _silentEl = null;
 
 function ctx() {
   if (typeof window === 'undefined') return null;
@@ -17,9 +19,67 @@ function ctx() {
   return _ctx;
 }
 
-// chamar no primeiro toque/clique da sessão para liberar o áudio
+// WAV mudo curto (data URI) tocado num <audio> em loop. No iOS, o botão
+// físico de silencioso corta TODO o Web Audio (roteado como "ambiente").
+// Manter um <audio> de mídia tocando segura a sessão em "playback",
+// fazendo os sons saírem mesmo com o iPhone no silencioso.
+function silentWavDataURI() {
+  const rate = 8000;
+  const samples = Math.floor(rate * 0.4);
+  const dataLen = samples * 2; // 16-bit mono, tudo zero = silêncio
+  const buf = new ArrayBuffer(44 + dataLen);
+  const view = new DataView(buf);
+  const str = (off, s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+  };
+  str(0, 'RIFF');
+  view.setUint32(4, 36 + dataLen, true);
+  str(8, 'WAVE');
+  str(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  str(36, 'data');
+  view.setUint32(40, dataLen, true);
+  let bin = '';
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+
+// Chamar a cada gesto do usuário. Destrava o Web Audio (iOS exige
+// resume + 1 som dentro do gesto) e segura a sessão de mídia ativa
+// para tocar mesmo com o celular no silencioso.
 export function unlockAudio() {
-  ctx();
+  const ac = ctx();
+  if (!ac) return;
+  if (ac.state === 'suspended') ac.resume().catch(() => {});
+
+  if (!_unlocked) {
+    _unlocked = true;
+    // "esquenta" o Web Audio com um buffer mudo, dentro do gesto (iOS)
+    try {
+      const src = ac.createBufferSource();
+      src.buffer = ac.createBuffer(1, 1, 22050);
+      src.connect(ac.destination);
+      src.start(0);
+    } catch {
+      /* noop */
+    }
+    try {
+      _silentEl = new Audio(silentWavDataURI());
+      _silentEl.loop = true;
+      _silentEl.setAttribute('playsinline', '');
+    } catch {
+      /* noop */
+    }
+  }
+  // (re)toca o loop mudo a cada gesto — mantém a sessão em "playback"
+  if (_silentEl) _silentEl.play().catch(() => {});
 }
 
 // agenda um tom simples (osc + envelope de ganho)

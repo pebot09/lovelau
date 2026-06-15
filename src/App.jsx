@@ -26,11 +26,14 @@ const CHAPTERS = [
 export default function App() {
   const [chapter, setChapter] = useState(0); // começa sempre no Cap 0
 
-  // o áudio só destrava após a primeira interação — garante no 1º toque
+  // destrava o áudio e mantém a sessão viva a cada gesto (iOS precisa de
+  // resume dentro do gesto; o loop mudo fura o botão de silencioso).
+  // Vários eventos e sem { once } para ser robusto no celular.
   useEffect(() => {
     const unlock = () => unlockAudio();
-    window.addEventListener('pointerdown', unlock, { once: true });
-    return () => window.removeEventListener('pointerdown', unlock);
+    const evts = ['pointerdown', 'touchend', 'click'];
+    evts.forEach((e) => window.addEventListener(e, unlock));
+    return () => evts.forEach((e) => window.removeEventListener(e, unlock));
   }, []);
 
   const Current = CHAPTERS[Math.min(chapter, CHAPTERS.length - 1)];
