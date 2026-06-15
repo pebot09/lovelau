@@ -251,9 +251,11 @@ function FicantesGame({ onNext }) {
 
   return (
     <div className="relative flex h-full flex-col px-5 pb-7 pt-16">
-      <Overline className="absolute left-6 top-7">álbum · ficantes</Overline>
-      <div className="absolute right-6 top-7 font-mono text-[10px] tracking-wider text-white/30">
-        arrasta pra ordenar · toca pra ampliar
+      <div className="absolute inset-x-6 top-7">
+        <Overline>álbum</Overline>
+        <div className="mt-1 font-mono text-[10px] tracking-wider text-white/30">
+          ficantes · arrasta pra ordenar · toca pra ampliar
+        </div>
       </div>
 
       {/* grade 2x2 de fotos embaralhadas */}
@@ -460,7 +462,7 @@ const GUESS = [
   {
     src: PHOTOS.IMG_1236,
     q: 'E essa?',
-    options: ['MAM', 'Bco e Moraes', 'Vale', 'Centro Cultural Banco do Brasil'],
+    options: ['MAM', 'BCO', 'Rua Moraes e Vale', 'CCBB'],
     correct: 'MAM',
   },
 ];
@@ -656,7 +658,6 @@ function FoodAlbum({ onDone }) {
   const [i, setI] = useState(0); // foto atual
   const [p, setP] = useState(0); // progresso 0..1
   const [win, setWin] = useState(false);
-  const [tapped, setTapped] = useState(false);
   const winRef = useRef(false);
   const lastTap = useRef(0);
   const trackRef = useRef(null);
@@ -684,7 +685,7 @@ function FoodAlbum({ onDone }) {
     const loop = (t) => {
       const dt = (t - prev) / 1000;
       prev = t;
-      if (t - lastTap.current > 800) setP((v) => (v > 0 ? Math.max(0, v - dt * 0.28) : v));
+      if (t - lastTap.current > 400) setP((v) => (v > 0 ? Math.max(0, v - dt * 0.62) : v));
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -703,7 +704,6 @@ function FoodAlbum({ onDone }) {
   const tap = () => {
     if (winRef.current || stage !== 'album') return;
     lastTap.current = performance.now();
-    setTapped(true);
     s.bip();
     setI((n) => (n + 1) % FOOD_PHOTOS.length); // toque avança a foto
     setP((v) => Math.min(1, v + 0.045)); // ~2 cliques/s mantém o progresso
@@ -778,18 +778,6 @@ function FoodAlbum({ onDone }) {
           </motion.div>
         </div>
       </div>
-
-      {/* dica até o primeiro toque */}
-      {!tapped && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="pointer-events-none absolute inset-x-0 bottom-10 text-center font-mono text-[11px] tracking-widest text-white/55"
-        >
-          ( toca rápido pra alimentar 🍗 )
-        </motion.div>
-      )}
 
       {/* vitória: NOM NOM NOM */}
       <AnimatePresence>

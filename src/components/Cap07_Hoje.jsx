@@ -112,24 +112,25 @@ function Texto({ onDone }) {
 
 function Argumento({ onDone }) {
   const s = useSounds();
-  const [shown, setShown] = useState(0);
+  // a primeira mensagem do claude já aparece; cada toque revela a próxima
+  const [shown, setShown] = useState(1);
   const boxRef = useRef(null);
   const dialogo = DATA.cap7.dialogo;
 
+  // som da primeira mensagem ao entrar
   useEffect(() => {
-    const ts = [];
-    dialogo.forEach((_, i) => {
-      ts.push(
-        setTimeout(() => {
-          s.bip();
-          setShown(i + 1);
-        }, 600 + i * 1500),
-      );
-    });
-    // assim que a última mensagem termina de aparecer: pausa de 1s → some
-    ts.push(setTimeout(onDone, 600 + (dialogo.length - 1) * 1500 + 900 + 1000));
-    return () => ts.forEach(clearTimeout);
+    s.bip();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // toque revela a próxima mensagem; depois da última, segue pro final
+  const advance = () => {
+    if (shown < dialogo.length) {
+      s.bip();
+      setShown((n) => n + 1);
+    } else {
+      onDone();
+    }
+  };
 
   // rola pra baixo suavemente conforme as mensagens chegam
   useEffect(() => {
@@ -138,7 +139,7 @@ function Argumento({ onDone }) {
   }, [shown]);
 
   return (
-    <div className="flex h-full items-center justify-center px-5">
+    <div className="flex h-full items-center justify-center px-5" onPointerDown={advance}>
       <div
         ref={boxRef}
         className="max-h-[64vh] w-full max-w-sm space-y-3.5 overflow-y-auto rounded-2xl border border-white/10 bg-black/45 px-5 py-5 backdrop-blur-sm"

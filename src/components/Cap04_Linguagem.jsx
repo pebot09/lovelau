@@ -254,14 +254,6 @@ function Panel1Duelo({ onReady }) {
           </div>
         ))}
       </div>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2.7, duration: 0.7 }}
-        className="text-center text-sm italic text-white/60"
-      >
-        Ele fala mais. Ela sente mais.
-      </motion.div>
     </div>
   );
 }
@@ -651,14 +643,6 @@ function Panel5Apelidos({ onReady }) {
           </div>
         </div>
       ))}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 4.6, duration: 0.7 }}
-        className="text-center text-sm italic text-white/60"
-      >
-        Ele inventou um apelido. Ela foi pelo caminho poético.
-      </motion.div>
     </div>
   );
 }

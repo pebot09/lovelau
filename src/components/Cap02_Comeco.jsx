@@ -149,8 +149,6 @@ const VIDEO_QS = [
     q: 'E no Instagram? Nos primeiros 3 meses, quem mandava mais reels?',
     opts: ['Pedro', 'Laura', 'Praticamente igual'],
     correct: 'Laura',
-    note: 'Laura — ela estava te conquistando via reel antes de ele virar o pesado. A virada aconteceu em abril/2025.',
-    noteOnWrongOnly: false,
   },
 ];
 
@@ -320,6 +318,7 @@ function VideoPart({ onDone }) {
                 ))}
               </div>
               {answer &&
+                VIDEO_QS[qi].note &&
                 (VIDEO_QS[qi].noteOnWrongOnly ? answer !== VIDEO_QS[qi].correct : true) && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -393,6 +392,9 @@ function DivergenceChart({ onNext }) {
   // 0 eixos → 1 curvas dinâmicas → 2 linhas estáticas → 3 reveal → 4 botão
   const [step, setStep] = useState(0);
   const [tip, setTip] = useState(null);
+  const [sel, setSel] = useState(null); // id da curva selecionada
+  const svgRef = useRef(null);
+  const scrubbing = useRef(false);
 
   const months = useMemo(() => Object.keys(DATA.monthly_messages), []);
   const x = (i) => PAD_L + (i / (months.length - 1)) * INNER_W;
@@ -448,12 +450,61 @@ function DivergenceChart({ onNext }) {
     return () => clearTimeout(t);
   }, [tip]);
 
+  // ── interação: toca numa curva pra selecioná-la; arrasta na horizontal
+  //    pra navegar pelas datas dessa curva (tooltip), sem afetar as outras.
+  const svgXY = (e) => {
+    const r = svgRef.current.getBoundingClientRect();
+    return {
+      sx: ((e.clientX - r.left) / r.width) * W,
+      sy: ((e.clientY - r.top) / r.height) * H,
+    };
+  };
+  const idxFromX = (sx) =>
+    Math.min(Math.max(Math.round(((sx - PAD_L) / INNER_W) * (months.length - 1)), 0), months.length - 1);
+  const showTip = (d, i) =>
+    setTip({
+      px: d.pts[i][0],
+      py: d.pts[i][1],
+      cor: d.cor,
+      label: d.label,
+      month: mesLabel(months[i], true),
+      pedro: d.raw[i].pedro,
+      laura: d.raw[i].laura,
+    });
+  const onPick = (e) => {
+    e.stopPropagation();
+    const { sx, sy } = svgXY(e);
+    const i = idxFromX(sx);
+    let best = dynamics[0];
+    let bestDist = Infinity;
+    for (const d of dynamics) {
+      const dist = Math.abs(d.pts[i][1] - sy);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = d;
+      }
+    }
+    setSel(best.id);
+    showTip(best, i);
+    scrubbing.current = true;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onScrub = (e) => {
+    if (!scrubbing.current) return;
+    const d = dynamics.find((x) => x.id === sel);
+    if (!d) return;
+    showTip(d, idxFromX(svgXY(e).sx));
+  };
+  const endScrub = () => {
+    scrubbing.current = false;
+  };
+
   const xTicks = [0, 3, 6, 9, 12, 15];
 
   return (
     <div className="flex h-full flex-col items-center justify-center bg-[#0a0a0a] px-3">
       <div className="relative w-full max-w-[440px]">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" onPointerDown={() => setTip(null)}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full">
           {/* grid muito sutil */}
           <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }}>
             {[40, -40].map((v) => (
@@ -501,21 +552,28 @@ function DivergenceChart({ onNext }) {
             </text>
           </motion.g>
 
-          {/* curvas dinâmicas se desenhando da esquerda pra direita */}
-          {dynamics.map((d) => (
-            <motion.path
-              key={d.id}
-              d={smoothPath(d.pts)}
-              fill="none"
-              stroke={d.cor}
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              style={{ filter: `drop-shadow(0 0 3px ${d.cor}55)` }}
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: step >= 1 ? 1 : 0 }}
-              transition={{ duration: 5.5, ease: 'easeInOut' }}
-            />
-          ))}
+          {/* curvas dinâmicas se desenhando da esquerda pra direita.
+              A selecionada fica em destaque; as outras esmaecem. */}
+          {dynamics.map((d) => {
+            const isSel = sel === d.id;
+            return (
+              <motion.path
+                key={d.id}
+                d={smoothPath(d.pts)}
+                fill="none"
+                stroke={d.cor}
+                strokeWidth={isSel ? 2.8 : 1.8}
+                strokeLinecap="round"
+                style={{ filter: `drop-shadow(0 0 3px ${d.cor}55)` }}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: step >= 1 ? 1 : 0, opacity: sel && !isSel ? 0.3 : 1 }}
+                transition={{
+                  pathLength: { duration: 5.5, ease: 'easeInOut' },
+                  opacity: { duration: 0.3 },
+                }}
+              />
+            );
+          })}
 
           {/* reveal: meses no eixo X, labels das curvas, ponto da virada */}
           {step >= 3 && (
@@ -578,35 +636,25 @@ function DivergenceChart({ onNext }) {
             </g>
           )}
 
-          {/* alvos de toque nos pontos (tooltip) */}
-          {step >= 3 &&
-            dynamics.map((d) =>
-              d.pts.map(([px, py], i) => (
-                <circle
-                  key={`${d.id}-${i}`}
-                  cx={px}
-                  cy={py}
-                  r="11"
-                  fill="rgba(0,0,0,0)"
-                  style={{ pointerEvents: 'all' }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    setTip({
-                      px,
-                      py,
-                      cor: d.cor,
-                      label: d.label,
-                      month: mesLabel(months[i], true),
-                      pedro: d.raw[i].pedro,
-                      laura: d.raw[i].laura,
-                    });
-                  }}
-                />
-              )),
-            )}
-
-          {/* destaque do ponto selecionado */}
+          {/* destaque do ponto sob o dedo na curva selecionada */}
           {tip && <circle cx={tip.px} cy={tip.py} r="3.5" fill={tip.cor} stroke="white" strokeWidth="1" />}
+
+          {/* camada de interação: toca numa curva pra selecioná-la e
+              arrasta na horizontal pra percorrer as datas dela */}
+          {step >= 3 && (
+            <rect
+              x={PAD_L}
+              y={PAD_T}
+              width={INNER_W}
+              height={INNER_H}
+              fill="transparent"
+              style={{ pointerEvents: 'all', touchAction: 'none' }}
+              onPointerDown={onPick}
+              onPointerMove={onScrub}
+              onPointerUp={endScrub}
+              onPointerCancel={endScrub}
+            />
+          )}
         </svg>
 
         {/* tooltip minimalista */}

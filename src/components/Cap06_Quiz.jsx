@@ -349,7 +349,7 @@ function Result({ score, total, onNext }) {
     score === total
       ? 'Você presta atenção.'
       : score >= 4
-        ? 'Quase tudo. O resto você vai aprender.'
+        ? 'Quase tudo. O resto vamos escrever ❤️'
         : 'A gente tem muito pela frente.';
 
   return (

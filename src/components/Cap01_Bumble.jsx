@@ -76,6 +76,16 @@ export default function Cap01_Bumble({ onNext }) {
         bumble
       </div>
 
+      {/* texto do swipe esquerdo — acima do card, longe do dedo durante o swipe */}
+      <div className="h-7">
+        <motion.div
+          className="px-8 text-center text-sm italic text-rose-200/90"
+          style={{ opacity: nopeFlash ? 1 : leftAmount }}
+        >
+          Como se alguém fosse dizer não…
+        </motion.div>
+      </div>
+
       {/* card */}
       <div className="relative flex w-full flex-1 items-center justify-center px-6">
         <motion.div
@@ -135,16 +145,6 @@ export default function Cap01_Bumble({ onNext }) {
           >
             😂
           </motion.div>
-        </motion.div>
-      </div>
-
-      {/* texto do swipe esquerdo — aparece progressivamente */}
-      <div className="h-7">
-        <motion.div
-          className="px-8 text-center text-sm italic text-rose-200/90"
-          style={{ opacity: nopeFlash ? 1 : leftAmount }}
-        >
-          Como se alguém fosse dizer não…
         </motion.div>
       </div>
 
