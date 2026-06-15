@@ -18,11 +18,12 @@ export function MediaFallback({ icon = '🎬', note }) {
  * item: { type: 'img' | 'video', src, note?, icon? }
  * Vídeos tocam quando `active`; se o arquivo não existir, cai no fallback.
  */
-export function Media({ item, active = true }) {
+export function Media({ item, active = true, fit = 'cover' }) {
   const [err, setErr] = useState(false);
   const ref = useRef(null);
   const isVideo = item.type === 'video';
   const placeholder = !item.src || !`${item.src}`.startsWith('http') ? !isVideo : false;
+  const objectFit = fit === 'contain' ? 'object-contain' : 'object-cover';
 
   useEffect(() => {
     const v = ref.current;
@@ -44,7 +45,7 @@ export function Media({ item, active = true }) {
       <video
         ref={ref}
         src={item.src}
-        className="h-full w-full object-cover"
+        className={`h-full w-full ${objectFit}`}
         playsInline
         loop
         preload="auto"
@@ -57,7 +58,7 @@ export function Media({ item, active = true }) {
   return (
     <img
       src={item.src}
-      className="h-full w-full select-none object-cover"
+      className={`h-full w-full select-none ${objectFit}`}
       draggable={false}
       alt=""
       onError={() => setErr(true)}
@@ -72,7 +73,7 @@ const variants = {
 };
 
 /** Carrossel simples de tela cheia — swipe pra passar, bolinhas no topo. */
-export default function Carousel({ items }) {
+export default function Carousel({ items, fit = 'cover' }) {
   const [[idx, dir], setIdx] = useState([0, 0]);
 
   const go = (n) => {
@@ -101,7 +102,7 @@ export default function Carousel({ items }) {
             else if (info.offset.x > 70) go(-1);
           }}
         >
-          <Media item={items[idx]} active />
+          <Media item={items[idx]} active fit={fit} />
         </motion.div>
       </AnimatePresence>
 

@@ -134,14 +134,32 @@ function ChatIntro({ onDone }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Partes 2 e 3 — vídeo + modal de trivia
+// Partes 2 e 3 — vídeo + 2 perguntas em modal de trivia
 // ─────────────────────────────────────────────────────────────
+
+const VIDEO_QS = [
+  {
+    q: 'Nas primeiras semanas, quem mandou mais mensagem?',
+    opts: ['Pedro', 'Laura'],
+    correct: 'Pedro',
+    note: 'Foi o Pedro — desde o início. 😏',
+    noteOnWrongOnly: true,
+  },
+  {
+    q: 'E no Instagram? Nos primeiros 3 meses, quem mandava mais reels?',
+    opts: ['Pedro', 'Laura', 'Praticamente igual'],
+    correct: 'Laura',
+    note: 'Laura — ela estava te conquistando via reel antes de ele virar o pesado. A virada aconteceu em abril/2025.',
+    noteOnWrongOnly: false,
+  },
+];
 
 function VideoPart({ onDone }) {
   const s = useSounds();
   const videoRef = useRef(null);
   const [modal, setModal] = useState(false);
   const [answer, setAnswer] = useState(null);
+  const [qi, setQi] = useState(0); // 0 = mensagens, 1 = reels
   const [videoOk, setVideoOk] = useState(true);
   const [showSkip, setShowSkip] = useState(false);
   const videoOkRef = useRef(true);
@@ -204,25 +222,29 @@ function VideoPart({ onDone }) {
 
   const pick = (who) => {
     if (answer) return;
+    const cur = VIDEO_QS[qi];
     setAnswer(who);
     stopTrivia();
-    if (who === 'Pedro') {
-      s.acerto();
-      later(closeModal, 1100);
-    } else {
-      s.erro();
-      later(closeModal, 2400);
-    }
+    const correct = who === cur.correct;
+    correct ? s.acerto() : s.erro();
+    later(() => {
+      if (qi < VIDEO_QS.length - 1) {
+        setQi((n) => n + 1); // avança pra pergunta dos reels
+        setAnswer(null);
+        startTrivia();
+      } else {
+        closeModal(); // respondeu as duas → segue pro gráfico
+      }
+    }, correct ? 1100 : 2400);
   };
 
   return (
     <div className="relative h-full bg-black">
       {videoOk ? (
-        /* PLACEHOLDER: vídeo — subir o arquivo em public/videos/IMG_0574.mov
-           (Pedro insere depois). Toca automaticamente, sem controles, cover. */
+        /* vídeo do primeiro encontro — public/videos/IMG_1971.mov */
         <video
           ref={videoRef}
-          src={`${import.meta.env.BASE_URL}videos/IMG_0574.mov`}
+          src={`${import.meta.env.BASE_URL}videos/IMG_1971.mov`}
           className="absolute inset-0 h-full w-full object-cover"
           playsInline
           autoPlay
@@ -241,7 +263,7 @@ function VideoPart({ onDone }) {
             🎬
           </motion.div>
           <div className="px-10 text-center font-mono text-[11px] leading-relaxed text-white/30">
-            [ vídeo entra aqui — public/videos/IMG_0574.mov ]
+            [ vídeo entra aqui — public/videos/IMG_1971.mov ]
           </div>
         </div>
       )}
@@ -269,40 +291,44 @@ function VideoPart({ onDone }) {
               transition={{ type: 'spring', stiffness: 320, damping: 26 }}
               className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#131313] p-6 shadow-2xl"
             >
+              <div className="mb-1 text-center font-mono text-[10px] tracking-[0.25em] text-white/30">
+                {qi + 1}/{VIDEO_QS.length}
+              </div>
               <div className="mb-5 text-center font-display text-lg font-medium leading-snug text-white">
-                Nas primeiras semanas, quem mandou mais mensagem?
+                {VIDEO_QS[qi].q}
               </div>
               <div className="space-y-2.5">
-                {['Pedro', 'Laura'].map((who) => (
+                {VIDEO_QS[qi].opts.map((opt) => (
                   <ChoiceButton
-                    key={who}
-                    onClick={() => pick(who)}
+                    key={opt}
+                    onClick={() => pick(opt)}
                     disabled={!!answer}
                     state={
                       !answer
                         ? 'idle'
-                        : who === 'Pedro'
-                          ? answer === 'Pedro'
+                        : opt === VIDEO_QS[qi].correct
+                          ? answer === opt
                             ? 'right'
                             : 'reveal'
-                          : answer === 'Laura'
+                          : answer === opt
                             ? 'wrong'
                             : 'dim'
                     }
                   >
-                    {who}
+                    {opt}
                   </ChoiceButton>
                 ))}
               </div>
-              {answer === 'Laura' && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-4 text-center text-sm text-white/60"
-                >
-                  Foi o Pedro — desde o início. 😏
-                </motion.div>
-              )}
+              {answer &&
+                (VIDEO_QS[qi].noteOnWrongOnly ? answer !== VIDEO_QS[qi].correct : true) && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-4 text-center text-sm leading-relaxed text-white/60"
+                  >
+                    {VIDEO_QS[qi].note}
+                  </motion.div>
+                )}
             </motion.div>
           </motion.div>
         )}
@@ -320,22 +346,8 @@ function VideoPart({ onDone }) {
 const METRICAS = [
   { id: 'mensagens', label: 'Mensagens', cor: '#e879a0', data: DATA.monthly_messages },
   { id: 'reels', label: 'Reels', cor: '#60a5fa', data: DATA.instagram.monthly_reels },
-  {
-    id: 'audios',
-    label: 'Áudios',
-    cor: '#34d399',
-    static: true,
-    pedro: DATA.whatsapp.pedro_audios,
-    laura: DATA.whatsapp.laura_audios,
-  },
-  {
-    id: 'conversas',
-    label: 'Iniciou conv.',
-    cor: '#fbbf24',
-    static: true,
-    pedro: DATA.whatsapp.pedro_iniciou,
-    laura: DATA.whatsapp.laura_iniciou,
-  },
+  { id: 'audios', label: 'Áudios', cor: '#34d399', data: DATA.monthly_audios },
+  { id: 'conversas', label: 'Iniciou conv.', cor: '#fbbf24', data: DATA.monthly_iniciacoes },
 ];
 
 // geometria do SVG
@@ -347,7 +359,7 @@ const PAD_T = 36;
 const PAD_B = 34;
 const INNER_W = W - PAD_L - PAD_R;
 const INNER_H = H - PAD_T - PAD_B;
-const DOMAIN = 80; // eixo Y vai de -80% a +80%
+const DOMAIN = 60; // eixo Y vai de -60% a +60%
 
 const div = (p, l) => (p + l === 0 ? 0 : ((p - l) / (p + l)) * 100);
 
@@ -387,9 +399,10 @@ function DivergenceChart({ onNext }) {
   const y = (v) => PAD_T + (1 - (v + DOMAIN) / (2 * DOMAIN)) * INNER_H;
   const y0 = y(0);
 
-  const { dynamics, statics, cross, endLabels } = useMemo(() => {
-    const dynamics = METRICAS.filter((m) => !m.static).map((m) => {
+  const { dynamics, cross, endLabels } = useMemo(() => {
+    const dynamics = METRICAS.map((m) => {
       const vals = months.map((k) => div(m.data[k].pedro, m.data[k].laura));
+      vals[0] = 0; // todas as 4 curvas começam forçadamente em 0% no primeiro ponto
       return {
         ...m,
         vals,
@@ -397,7 +410,6 @@ function DivergenceChart({ onNext }) {
         raw: months.map((k) => m.data[k]),
       };
     });
-    const statics = METRICAS.filter((m) => m.static).map((m) => ({ ...m, val: div(m.pedro, m.laura) }));
 
     // ponto onde os reels cruzam o zero (Laura → Pedro na frente)
     const reels = dynamics.find((d) => d.id === 'reels');
@@ -410,23 +422,21 @@ function DivergenceChart({ onNext }) {
       }
     }
 
-    const endLabels = spreadLabels([
-      ...dynamics.map((d) => ({ label: d.label, cor: d.cor, y: d.pts[d.pts.length - 1][1] })),
-      ...statics.map((m) => ({ label: m.label, cor: m.cor, y: y(m.val) })),
-    ]);
+    const endLabels = spreadLabels(
+      dynamics.map((d) => ({ label: d.label, cor: d.cor, y: d.pts[d.pts.length - 1][1] })),
+    );
 
-    return { dynamics, statics, cross, endLabels };
+    return { dynamics, cross, endLabels };
   }, [months]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const ts = [
-      setTimeout(() => setStep(1), 1000), // curvas começam
-      setTimeout(() => setStep(2), 1000 + 5700), // estáticas tracejadas
+      setTimeout(() => setStep(1), 1000), // as 4 curvas começam a se desenhar
       setTimeout(() => {
-        setStep(3); // pausa de 1s já incluída
+        setStep(3); // pausa de 1s após as curvas → reveal
         s.chime();
-      }, 1000 + 5700 + 1300 + 1000),
-      setTimeout(() => setStep(4), 1000 + 5700 + 1300 + 1000 + 900),
+      }, 1000 + 5700 + 1000),
+      setTimeout(() => setStep(4), 1000 + 5700 + 1000 + 900),
     ];
     return () => ts.forEach(clearTimeout);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -507,24 +517,6 @@ function DivergenceChart({ onNext }) {
             />
           ))}
 
-          {/* linhas horizontais tracejadas (totais estáticos) */}
-          {step >= 2 &&
-            statics.map((m, i) => (
-              <motion.line
-                key={m.id}
-                x1={x(0)}
-                y1={y(m.val)}
-                y2={y(m.val)}
-                stroke={m.cor}
-                strokeWidth="1.2"
-                strokeDasharray="4 5"
-                opacity="0.85"
-                initial={{ x2: x(0) }}
-                animate={{ x2: x(months.length - 1) }}
-                transition={{ duration: 1.1, delay: i * 0.15, ease: 'easeInOut' }}
-              />
-            ))}
-
           {/* reveal: meses no eixo X, labels das curvas, ponto da virada */}
           {step >= 3 && (
             <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.9 }}>
@@ -581,7 +573,7 @@ function DivergenceChart({ onNext }) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9, duration: 0.8 }}
               >
-                aqui você assumiu
+                aqui ele assumiu
               </motion.text>
             </g>
           )}

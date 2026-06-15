@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import Typewriter from './shared/Typewriter';
 import useSounds from '../hooks/useSounds';
@@ -6,16 +6,15 @@ import { ChoiceButton, ContinueButton, FloatingHearts, Overline } from './shared
 import { DATA } from '../data/data';
 
 // [03] CAP 3 — "VOCÊ ME CONHECE?"
-// 3 jogos em sequência: quem disse isso? → quem disse eu te amo
-// primeiro online? → o que veio depois?
+// 2 etapas de jogos: quem disse isso? → "eu te amo" primeiro online +
+// o que veio depois (fluxo único, sem botão entre eles)
 export default function Cap03_Conhece({ onNext }) {
   const [stage, setStage] = useState('intro');
 
   const stages = {
     intro: <Intro onDone={() => setStage('g1')} />,
-    g1: <Game1 onDone={() => setStage('g2')} />,
-    g2: <Game2 onDone={() => setStage('g3')} />,
-    g3: <Game3 onDone={onNext} />,
+    g1: <Game1 onDone={() => setStage('g23')} />,
+    g23: <Game23 onDone={onNext} />,
   };
 
   return (
@@ -78,29 +77,31 @@ function Game1({ onDone }) {
   const [finished, setFinished] = useState(false);
 
   const r = rounds[round];
-  const options = r.decoy ? ['Pedro', 'Laura', r.decoy] : ['Pedro', 'Laura'];
-  const gotcha = !options.includes(r.resposta); // pegadinha: a resposta nem está nos botões
+  // 3 botões sempre: quando a resposta é um famoso, ela vira o terceiro botão
+  const options = ['Pedro', 'Laura', r.decoy ?? r.resposta];
 
   const pick = (opt) => {
     if (chosen) return;
     setChosen(opt);
-    const correct = opt === r.resposta;
-    if (correct) {
+    if (opt === r.resposta) {
       setScore((n) => n + 1);
       s.acerto();
     } else {
-      gotcha ? s.buzzer() : s.erro();
+      s.erro();
     }
     setTimeout(() => setShowCtx(true), 550);
-    setTimeout(() => {
-      if (round < rounds.length - 1) {
-        setRound((n) => n + 1);
-        setChosen(null);
-        setShowCtx(false);
-      } else {
-        setFinished(true);
-      }
-    }, gotcha ? 3300 : 2500);
+  };
+
+  // não avança sozinho — só com toque, depois do contexto revelado
+  const advance = () => {
+    if (!chosen || !showCtx) return;
+    if (round < rounds.length - 1) {
+      setRound((n) => n + 1);
+      setChosen(null);
+      setShowCtx(false);
+    } else {
+      setFinished(true);
+    }
   };
 
   const stateFor = (opt) => {
@@ -180,105 +181,151 @@ function Game1({ onDone }) {
           <div className="min-h-[72px] text-center">
             {showCtx && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-                {gotcha && (
-                  <motion.div
-                    initial={{ scale: 0.6 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 320, damping: 16 }}
-                    className="inline-block rounded-full border border-gold/70 bg-gold/10 px-4 py-1.5 text-sm font-semibold text-gold"
-                  >
-                    → {r.resposta}
-                  </motion.div>
-                )}
                 <div className="text-sm italic leading-relaxed text-white/55">{r.contexto}</div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="pt-1 font-mono text-[11px] tracking-widest text-white/30"
+                >
+                  toque para continuar
+                </motion.div>
               </motion.div>
             )}
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* toque em qualquer lugar avança (só depois do contexto revelado) */}
+      {showCtx && <button aria-label="continuar" onClick={advance} className="absolute inset-0 z-10" />}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// JOGO 3.2 — QUEM DISSE "EU TE AMO" PRIMEIRO... ONLINE?
+// JOGOS 3.2 + 3.3 — "eu te amo" primeiro online → o que veio depois
+// (fluxo único: o reveal do TE AMO já emenda na pergunta do 3.3)
 // ─────────────────────────────────────────────────────────────
 
-function Game2({ onDone }) {
+const G3_OPTIONS = [
+  'tb to adorando namorar você',
+  'amor, esse é o John Kennedy', // a correta da história — mas aqui qualquer clique leva a ela
+  'boa noite gatinho',
+  'ce me faz feliz demais',
+];
+
+function ChatBubble({ m }) {
+  const pedro = m.sender === 'Pedro';
+  const teAmo = m.highlight; // "TE AMO"
+  const kennedy = m.text.startsWith('amor esse é o John');
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className={`max-w-[80%] rounded-2xl border border-transparent px-4 py-2.5 shadow ${
+        pedro ? 'self-end rounded-tr-md bg-[#005c4b] text-white' : 'self-start rounded-tl-md bg-[#202c33] text-white'
+      } ${teAmo ? '!border-rose-400/80 !bg-rose-500/20 shadow-[0_0_22px_rgba(244,114,182,0.3)]' : ''} ${
+        kennedy ? '!border-gold/70 !bg-gold/10 shadow-[0_0_18px_rgba(232,185,74,0.25)]' : ''
+      }`}
+    >
+      <span className={teAmo ? 'font-display text-xl font-bold tracking-wide text-rose-200' : 'text-[15px]'}>
+        {m.text}
+      </span>
+      <span className="ml-2 align-bottom text-[10px] text-white/35">{m.time}</span>
+    </motion.div>
+  );
+}
+
+function Game23({ onDone }) {
   const s = useSounds();
-  const [stage, setStage] = useState('q'); // q | wrong | reveal
+  const convo = DATA.te_amo.conversation;
+  const [phase, setPhase] = useState('q1'); // q1 | wrong | reveal
   const [chosen, setChosen] = useState(null);
-  const [bubbles, setBubbles] = useState(0);
+
+  // sub-estados do reveal
+  const [bubbles, setBubbles] = useState(0); // KKKK, TE AMO
   const [caption, setCaption] = useState(false);
+  const [showG3, setShowG3] = useState(false);
+  const [picked, setPicked] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const [kennedy, setKennedy] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [legend, setLegend] = useState(false);
   const [btn, setBtn] = useState(false);
 
-  // os dois balões do reveal vêm direto da conversa real
-  const msgs = DATA.te_amo.conversation.slice(3, 5); // KKKKKKKKKKKK + TE AMO
+  // ordem aleatória das opções do 3.3
+  const g3options = useMemo(
+    () => G3_OPTIONS.map((o) => [Math.random(), o]).sort((a, b) => a[0] - b[0]).map(([, o]) => o),
+    [],
+  );
 
-  const pick = (who) => {
+  const pickTeAmo = (who) => {
     if (chosen) return;
     setChosen(who);
     if (who === 'Laura') {
       s.chime();
-      setTimeout(() => setStage('reveal'), 900);
+      setTimeout(() => setPhase('reveal'), 900);
     } else {
       s.erro();
-      setTimeout(() => setStage('wrong'), 800);
+      setTimeout(() => setPhase('wrong'), 800);
     }
   };
 
-  // balões aparecem um a um, de cima pra baixo, com delay de 600ms
+  // reveal: KKKK + TE AMO + legenda → emenda na pergunta do 3.3
   useEffect(() => {
-    if (stage !== 'reveal') return;
+    if (phase !== 'reveal') return;
     const ts = [
       setTimeout(() => setBubbles(1), 400),
       setTimeout(() => setBubbles(2), 1000),
       setTimeout(() => setCaption(true), 1900),
-      setTimeout(() => setBtn(true), 1900 + 3000), // pausa de 3s
+      setTimeout(() => setShowG3(true), 1900 + 1500),
     ];
     return () => ts.forEach(clearTimeout);
-  }, [stage]);
+  }, [phase]);
 
-  if (stage === 'reveal') {
+  // clique no 3.3: sem feedback de cor — a opção some, "digitando...",
+  // e a mensagem do John Kennedy aparece como próxima bolha (sempre)
+  const pickG3 = () => {
+    if (picked) return;
+    setPicked(true);
+    setTimeout(() => setTyping(true), 300);
+    setTimeout(() => {
+      setTyping(false);
+      setKennedy(true);
+      s.bip();
+    }, 300 + 1000);
+    setTimeout(() => setExpanded(true), 300 + 1000 + 700); // conversa expande pra cima
+    setTimeout(() => setLegend(true), 300 + 1000 + 700 + 1000);
+    setTimeout(() => setBtn(true), 300 + 1000 + 700 + 1000 + 1500);
+  };
+
+  if (phase === 'q1') {
     return (
-      <div className="relative flex h-full flex-col items-center justify-center gap-3 px-7">
-        <FloatingHearts />
-        <div className="w-full max-w-sm space-y-3">
-          {bubbles >= 1 && (
-            <motion.div
-              initial={{ opacity: 0, y: -14 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="w-fit rounded-2xl rounded-tl-md bg-[#202c33] px-4 py-2.5 text-[15px] text-white shadow"
-            >
-              KKKKKKKKKKKK
-              <span className="ml-2 align-bottom text-[10px] text-white/40">{msgs[0].time}</span>
-            </motion.div>
-          )}
-          {bubbles >= 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: -14, scale: 0.85 }}
-              animate={{ opacity: 1, y: 0, scale: [0.85, 1.08, 1, 1.06, 1] }}
-              transition={{ duration: 1.4, ease: 'easeOut' }}
-              className="w-fit rounded-2xl rounded-tl-md border border-rose-400/80 bg-gradient-to-br from-rose-500/30 to-rose-600/20 px-6 py-3.5 shadow-[0_0_28px_rgba(244,114,182,0.35)]"
-            >
-              <span className="font-display text-2xl font-bold tracking-wide text-rose-200">TE AMO</span>
-              <span className="ml-2.5 align-bottom text-[10px] text-rose-200/50">{msgs[1].time}</span>
-            </motion.div>
-          )}
+      <div className="relative mx-auto flex h-full max-w-md flex-col justify-center gap-9 px-7">
+        <Overline className="absolute left-6 top-7">jogo 2</Overline>
+        <div className="text-center font-display text-[26px] font-medium leading-snug text-white">
+          Quem disse <span className="italic text-blush">“eu te amo”</span> primeiro... online?
         </div>
-        <div className="h-6">
-          {caption && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-white/50">
-              {DATA.te_amo.time.replace(':', 'h')} do dia {DATA.te_amo.date}.
-            </motion.div>
-          )}
+        <div className="space-y-3">
+          {['Pedro', 'Laura'].map((who) => (
+            <ChoiceButton
+              key={who}
+              onClick={() => pickTeAmo(who)}
+              disabled={!!chosen}
+              state={!chosen ? 'idle' : who === chosen ? (who === 'Laura' ? 'right' : 'wrong') : 'dim'}
+              className="py-4 text-base"
+            >
+              {who}
+            </ChoiceButton>
+          ))}
         </div>
-        <div className="mt-4 h-11">{btn && <ContinueButton label="Próximo jogo →" onClick={onDone} />}</div>
       </div>
     );
   }
 
-  if (stage === 'wrong') {
+  if (phase === 'wrong') {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-6 px-8 text-center">
         <div className="text-4xl">🔴</div>
@@ -288,203 +335,98 @@ function Game2({ onDone }) {
           delay={0.4}
           onClick={() => {
             setChosen(null);
-            setStage('q');
+            setPhase('q1');
           }}
         />
       </div>
     );
   }
 
-  return (
-    <div className="relative mx-auto flex h-full max-w-md flex-col justify-center gap-9 px-7">
-      <Overline className="absolute left-6 top-7">jogo 2</Overline>
-      <div className="text-center font-display text-[26px] font-medium leading-snug text-white">
-        Quem disse <span className="italic text-blush">“eu te amo”</span> primeiro... online?
-      </div>
-      <div className="space-y-3">
-        {['Pedro', 'Laura'].map((who) => (
-          <ChoiceButton
-            key={who}
-            onClick={() => pick(who)}
-            disabled={!!chosen}
-            state={!chosen ? 'idle' : who === chosen ? (who === 'Laura' ? 'right' : 'wrong') : 'dim'}
-            className="py-4 text-base"
-          >
-            {who}
-          </ChoiceButton>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// JOGO 3.3 — O QUE VEIO DEPOIS?
-// ─────────────────────────────────────────────────────────────
-
-const G3_OPTIONS = [
-  'tb to adorando namorar você',
-  'amor, esse é o John Kennedy', // ← correta
-  'boa noite gatinho',
-  'ce me faz feliz demais',
-];
-const G3_CORRECT = G3_OPTIONS[1];
-
-function Game3({ onDone }) {
-  const s = useSounds();
-  const [stage, setStage] = useState('q'); // q | big | convo
-  const [introDone, setIntroDone] = useState(false);
-  const [chosen, setChosen] = useState(null);
-  const [shown, setShown] = useState(0); // mensagens reveladas (de baixo pra cima)
-  const [caption, setCaption] = useState(false);
-  const [btn, setBtn] = useState(false);
-  const bigDone = useRef(false);
-
-  // ordem aleatória a cada vez
-  const options = useMemo(
-    () => G3_OPTIONS.map((o) => [Math.random(), o]).sort((a, b) => a[0] - b[0]).map(([, o]) => o),
-    [],
-  );
-
-  const convo = DATA.te_amo.conversation;
-
-  const pick = (opt) => {
-    if (chosen) return;
-    setChosen(opt);
-    opt === G3_CORRECT ? s.acerto() : s.erro();
-    setTimeout(() => setStage('big'), 1400);
-  };
-
-  // tempo 2: a conversa expande, mensagens surgindo de baixo pra cima
-  // (o John Kennedy já está na tela — morph do tempo 1)
-  useEffect(() => {
-    if (stage !== 'convo') return;
-    const ts = [];
-    for (let k = 2; k <= convo.length; k++) {
-      ts.push(
-        setTimeout(() => {
-          s.bip();
-          setShown(k);
-        }, (k - 1) * 600),
-      );
-    }
-    ts.push(setTimeout(() => setCaption(true), convo.length * 600 + 500));
-    ts.push(setTimeout(() => setBtn(true), convo.length * 600 + 1500));
-    return () => ts.forEach(clearTimeout);
-  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const stateFor = (opt) => {
-    if (!chosen) return 'idle';
-    if (opt === chosen) return opt === G3_CORRECT ? 'right' : 'wrong';
-    if (opt === G3_CORRECT) return 'reveal';
-    return 'dim';
-  };
+  // ── reveal: chat que cresce ──
+  const indices = [];
+  if (expanded) indices.push(0, 1, 2); // contexto que aparece quando expande pra cima
+  if (bubbles >= 1) indices.push(3); // KKKK
+  if (bubbles >= 2) indices.push(4); // TE AMO
+  if (kennedy) indices.push(5); // amor esse é o John Kennedy
 
   return (
-    <LayoutGroup>
-      <div className="relative mx-auto flex h-full max-w-md flex-col px-6 py-8">
-        <Overline className="absolute left-6 top-7">jogo 3</Overline>
+    <div className="relative flex h-full flex-col px-6 pb-6 pt-14">
+      <Overline className="absolute left-6 top-7">jogo 2 + 3</Overline>
+      {!expanded && <FloatingHearts count={10} />}
 
-        {stage === 'q' && (
-          <div className="flex flex-1 flex-col justify-center gap-7">
-            <Typewriter
-              lines={[
-                { text: "Primeiro 'TE AMO' online enviado.", delayAfter: 500 },
-                { text: 'O que ela mandou logo na sequência?', className: 'text-white/70 !text-lg' },
-              ]}
-              speed={34}
-              className="space-y-2 text-center font-display text-xl font-medium"
-              onDone={() => setIntroDone(true)}
-            />
-            <div className="min-h-[230px]">
-              {introDone && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-2.5"
-                >
-                  {options.map((opt) => (
-                    <ChoiceButton key={opt} onClick={() => pick(opt)} disabled={!!chosen} state={stateFor(opt)}>
-                      {opt}
-                    </ChoiceButton>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-          </div>
-        )}
+      <LayoutGroup>
+        <div className="flex flex-1 flex-col justify-center gap-2.5 overflow-y-auto">
+          {indices.map((i) => (
+            <ChatBubble key={i} m={convo[i]} />
+          ))}
 
-        {/* tempo 1: a frase sozinha, grande, no centro, como se fosse digitada */}
-        {stage === 'big' && (
-          <div className="flex flex-1 items-center justify-center">
-            <motion.div layoutId="kennedy" className="px-2 text-center">
-              <Typewriter
-                lines={[{ text: 'amor, esse é o John Kennedy' }]}
-                speed={46}
-                className="font-display text-3xl font-semibold leading-snug text-white"
-                onDone={() => {
-                  if (bigDone.current) return;
-                  bigDone.current = true;
-                  // pausa de 1.5s; shown=1 no mesmo commit para o morph
-                  // do layoutId não perder o elemento por um frame
-                  setTimeout(() => {
-                    setShown(1);
-                    setStage('convo');
-                  }, 1500);
-                }}
-              />
+          {caption && !picked && (
+            <motion.div
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="pt-1 text-center text-xs text-white/50"
+            >
+              {DATA.te_amo.time.replace(':', 'h')} do dia {DATA.te_amo.date}.
             </motion.div>
-          </div>
-        )}
+          )}
 
-        {/* tempo 2: o contexto completo */}
-        {stage === 'convo' && (
-          <div className="flex flex-1 flex-col justify-end gap-2 pb-2">
-            {convo.map((m, i) => {
-              if (i < convo.length - shown) return null;
-              const isLast = i === convo.length - 1;
-              const pedro = m.sender === 'Pedro';
-              const bubble = pedro
-                ? 'self-end rounded-tr-md bg-[#005c4b] text-white'
-                : 'self-start rounded-tl-md bg-[#202c33] text-white';
-              const highlight = m.highlight
-                ? '!border-rose-400/80 !bg-rose-500/20 shadow-[0_0_22px_rgba(244,114,182,0.3)]'
-                : '';
-              const kennedy = isLast
-                ? '!border-gold/70 !bg-gold/10 shadow-[0_0_18px_rgba(232,185,74,0.25)]'
-                : '';
-              return (
-                <motion.div
-                  key={i}
-                  layoutId={isLast ? 'kennedy' : undefined}
-                  initial={isLast ? false : { opacity: 0, y: -10 }}
+          {showG3 && !picked && (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-2.5 pt-3"
+            >
+              <div className="text-center font-display text-base font-medium text-white/90">
+                o que ela mandou logo na sequência?
+              </div>
+              {g3options.map((opt, i) => (
+                <motion.button
+                  key={opt}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35 }}
-                  className={`max-w-[80%] rounded-2xl border border-transparent px-4 py-2.5 shadow ${bubble} ${highlight} ${kennedy}`}
+                  transition={{ delay: i * 0.12 }}
+                  onClick={pickG3}
+                  className="w-full rounded-2xl border border-white/15 bg-white/[0.05] px-5 py-3 text-[14px] font-medium text-white/90 transition active:scale-[0.98]"
                 >
-                  <span className={m.highlight ? 'font-display text-xl font-bold text-rose-200' : 'text-[15px]'}>
-                    {m.text}
-                  </span>
-                  <span className="ml-2 align-bottom text-[10px] text-white/35">{m.time}</span>
-                </motion.div>
-              );
-            })}
+                  {opt}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
 
-            <div className="min-h-[30px] pt-3 text-center">
-              {caption && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm italic text-white/55"
-                >
-                  Te amou e seguiu a explicação tática sem pausar. 😂
-                </motion.div>
-              )}
-            </div>
-            <div className="h-12 pt-1">{btn && <ContinueButton onClick={onDone} />}</div>
-          </div>
+          {typing && (
+            <motion.div
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex w-fit gap-1.5 self-start rounded-2xl rounded-tl-md bg-[#202c33] px-4 py-3"
+            >
+              {[0, 1, 2].map((d) => (
+                <span
+                  key={d}
+                  className="typing-dot h-1.5 w-1.5 rounded-full bg-white/70"
+                  style={{ animationDelay: `${d * 0.18}s` }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </LayoutGroup>
+
+      <div className="min-h-[40px] pt-2 text-center">
+        {legend && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-sm italic leading-relaxed text-white/60"
+          >
+            Te amou por não saber quem era John Kennedy... Isso que é amor de tricolor!
+          </motion.div>
         )}
       </div>
-    </LayoutGroup>
+      <div className="h-12 pt-1">{btn && <ContinueButton onClick={onDone} />}</div>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, animate, motion } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { animate, motion } from 'framer-motion';
 import {
   Line,
   LineChart,
@@ -20,6 +20,8 @@ const ROSA = '#e879a0';
 // ❤ sem variation selector vira glifo de texto em alguns aparelhos
 const emo = (e) => (e === '❤' ? '❤️' : e);
 
+const shuffle = (arr) => arr.map((v) => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+
 // [04] CAP 4 — "A LINGUAGEM DE VOCÊS"
 export default function Cap04_Linguagem({ onNext }) {
   const [stage, setStage] = useState('intro'); // intro | quiz | panels | outro
@@ -31,20 +33,20 @@ export default function Cap04_Linguagem({ onNext }) {
     outro: <Outro onNext={onNext} />,
   };
 
+  // sem AnimatePresence mode="wait": as etapas contêm jogos de arrastar,
+  // e o mode="wait" travaria a saída (tela preta) — etapa anterior
+  // desmonta na hora e a próxima entra com fade+slide.
   return (
     <div className="h-full overflow-hidden bg-[#0a0a0a]">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={stage}
-          className="h-full"
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-        >
-          {stages[stage]}
-        </motion.div>
-      </AnimatePresence>
+      <motion.div
+        key={stage}
+        className="h-full"
+        initial={{ opacity: 0, x: 24 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
+      >
+        {stages[stage]}
+      </motion.div>
     </div>
   );
 }
@@ -77,7 +79,8 @@ function Intro({ onDone }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// QUIZ — 4 perguntas, uma por vez
+// QUIZ — 3 perguntas (a de reels foi pro Cap 2). Sem texto de reveal:
+// só borda verde/vermelha + placar X/3, e avança sozinho em 2.5s.
 // ─────────────────────────────────────────────────────────────
 
 const QUIZ = [
@@ -85,25 +88,16 @@ const QUIZ = [
     q: 'No WhatsApp, quem mandou mais mensagens no total?',
     options: ['Pedro', 'Laura', 'Praticamente igual'],
     correct: 'Pedro',
-    reveal: 'Pedro — 14.281 contra 12.577. Mas a diferença é menor do que parece: 53% a 47%.',
-  },
-  {
-    q: 'Nos primeiros 3 meses se conhecendo, quem mandava mais reels no Instagram?',
-    options: ['Pedro', 'Laura', 'Praticamente igual'],
-    correct: 'Laura',
-    reveal: 'Laura — ela estava te conquistando via reel antes de você virar o pesado. A virada aconteceu em abril/2025.',
   },
   {
     q: "Quantas vezes a Laura usou a palavra 'amor' no WhatsApp?",
     options: ['Umas 400', 'Umas 500', 'Mais de 600'],
     correct: 'Mais de 600',
-    reveal: '693 vezes. Em 17 meses. Uma média de 40 por mês.',
   },
   {
     q: 'Qual foi o emoji mais usado pela Laura?',
     options: ['❤', '😍', '😂', '🥰'],
     correct: '😍',
-    reveal: '😍 — seguido de 🥰 e 🤍. O Pedro? ❤ e 😭.',
   },
 ];
 
@@ -111,22 +105,29 @@ function Quiz({ onDone }) {
   const s = useSounds();
   const [qi, setQi] = useState(0);
   const [chosen, setChosen] = useState(null);
+  const [score, setScore] = useState(0);
   const q = QUIZ[qi];
-  const isEmoji = qi === 3;
+  const isEmoji = qi === QUIZ.length - 1;
 
   const pick = (opt) => {
     if (chosen) return;
     setChosen(opt);
-    opt === q.correct ? s.acerto() : s.erro();
-  };
-
-  const next = () => {
-    if (qi < QUIZ.length - 1) {
-      setQi((n) => n + 1);
-      setChosen(null);
+    const correct = opt === q.correct;
+    if (correct) {
+      setScore((n) => n + 1);
+      s.acerto();
     } else {
-      onDone();
+      s.erro();
     }
+    // avança automaticamente após o feedback visual (sem botão)
+    setTimeout(() => {
+      if (qi < QUIZ.length - 1) {
+        setQi((n) => n + 1);
+        setChosen(null);
+      } else {
+        onDone();
+      }
+    }, 2500);
   };
 
   const stateFor = (opt) => {
@@ -139,79 +140,53 @@ function Quiz({ onDone }) {
   return (
     <div className="relative mx-auto flex h-full max-w-md flex-col px-6 pb-8 pt-20">
       <Overline className="absolute left-6 top-7">os números</Overline>
-      {/* progresso */}
-      <div className="absolute right-6 top-7 flex gap-1.5">
-        {QUIZ.map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 w-1.5 rounded-full ${i <= qi ? 'bg-blush' : 'bg-white/15'}`}
-          />
-        ))}
+      {/* placar X/3 no canto superior direito */}
+      <div className="absolute right-6 top-6 rounded-full border border-white/15 px-3 py-1 font-mono text-xs text-white/70">
+        {score}/{QUIZ.length}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={qi}
-          className="flex flex-1 flex-col justify-center gap-7"
-          initial={{ opacity: 0, x: 26 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -26 }}
-          transition={{ duration: 0.45, ease: 'easeInOut' }}
-        >
-          <div className="text-center font-display text-xl font-medium leading-snug text-white">{q.q}</div>
+      <motion.div
+        key={qi}
+        className="flex flex-1 flex-col justify-center gap-8"
+        initial={{ opacity: 0, x: 26 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.45, ease: 'easeInOut' }}
+      >
+        <div className="text-center font-display text-xl font-medium leading-snug text-white">{q.q}</div>
 
-          <div className={isEmoji ? 'grid grid-cols-2 gap-2.5' : 'space-y-2.5'}>
-            {q.options.map((opt) => (
-              <ChoiceButton
-                key={opt}
-                onClick={() => pick(opt)}
-                disabled={!!chosen}
-                state={stateFor(opt)}
-                className={isEmoji ? 'py-4 text-3xl' : ''}
-              >
-                {isEmoji ? emo(opt) : opt}
-              </ChoiceButton>
-            ))}
-          </div>
-
-          <div className="min-h-[88px]">
-            {chosen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55 }}
-                className="space-y-5"
-              >
-                <div className="border-l-2 border-blush/60 pl-3 text-left text-sm leading-relaxed text-white/75">
-                  {q.reveal}
-                </div>
-                <ContinueButton
-                  label={qi < QUIZ.length - 1 ? 'próxima →' : 'ver mais →'}
-                  onClick={next}
-                  delay={0.5}
-                />
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-      </AnimatePresence>
+        <div className={isEmoji ? 'grid grid-cols-2 gap-2.5' : 'space-y-2.5'}>
+          {q.options.map((opt) => (
+            <ChoiceButton
+              key={opt}
+              onClick={() => pick(opt)}
+              disabled={!!chosen}
+              state={stateFor(opt)}
+              className={isEmoji ? 'py-4 text-3xl' : ''}
+            >
+              {isEmoji ? emo(opt) : opt}
+            </ChoiceButton>
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// PAINÉIS — abrem em sequência, um por vez, com "ver mais →"
+// PAINÉIS — abrem em sequência, um por vez, com "ver mais →".
+// Os dois jogos (emojis e palavras) somam num placar único.
 // ─────────────────────────────────────────────────────────────
+
+const PANELS = [Panel1Duelo, Panel2Reels, EmojiGame, WordsGame, Placar, Panel4Amor, Panel5Apelidos];
 
 function Panels({ onDone }) {
   const [pi, setPi] = useState(0);
   const [ready, setReady] = useState(false);
+  const [score, setScore] = useState(0); // placar acumulado dos 2 jogos
 
-  const panels = [Panel1Duelo, Panel2Reels, Panel3Emojis, Panel4Amor, Panel5Apelidos, Panel6Nuvem];
-  const Panel = panels[pi];
-
+  const Cur = PANELS[pi];
   const next = () => {
-    if (pi < panels.length - 1) {
+    if (pi < PANELS.length - 1) {
       setPi((n) => n + 1);
       setReady(false);
     } else {
@@ -219,20 +194,19 @@ function Panels({ onDone }) {
     }
   };
 
+  // sem AnimatePresence: a fase anterior desmonta na hora (anti-deadlock
+  // dos jogos de arrastar) e a próxima entra com fade+slide.
   return (
     <div className="relative h-full">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={pi}
-          className="h-full"
-          initial={{ opacity: 0, x: 26 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -26 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-        >
-          <Panel onReady={() => setReady(true)} />
-        </motion.div>
-      </AnimatePresence>
+      <motion.div
+        key={pi}
+        className="h-full"
+        initial={{ opacity: 0, x: 26 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
+      >
+        <Cur onReady={() => setReady(true)} score={score} onScore={(d) => setScore((v) => v + d)} />
+      </motion.div>
       <div className="absolute inset-x-0 bottom-9">
         {ready && <ContinueButton label="ver mais →" onClick={next} />}
       </div>
@@ -286,7 +260,7 @@ function Panel1Duelo({ onReady }) {
         transition={{ delay: 2.7, duration: 0.7 }}
         className="text-center text-sm italic text-white/60"
       >
-        Você fala mais. Ela sente mais.
+        Ele fala mais. Ela sente mais.
       </motion.div>
     </div>
   );
@@ -362,64 +336,236 @@ function Panel2Reels({ onReady }) {
   );
 }
 
-// Painel 3 — os emojis de cada um
-function Panel3Emojis({ onReady }) {
-  useEffect(() => {
-    const t = setTimeout(onReady, 3700);
-    return () => clearTimeout(t);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+// ─────────────────────────────────────────────────────────────
+// Jogo de arrastar (base dos jogos de emojis e palavras)
+// Arrasta cada token pro campo certo. Acerto +1, erro -1 (e o token
+// vai sozinho pro campo certo). Placar acumula entre os dois jogos.
+// ─────────────────────────────────────────────────────────────
 
-  const sizes = ['text-6xl', 'text-5xl', 'text-4xl', 'text-3xl', 'text-2xl'];
-  const cols = [
-    { nome: 'Pedro', list: DATA.emojis.pedro, txt: 'text-sky-300', offset: 0 },
-    { nome: 'Laura', list: DATA.emojis.laura, txt: 'text-rose-300', offset: DATA.emojis.pedro.length },
+function Token({ tk, kind, big }) {
+  if (kind === 'emoji') return <span className={big ? 'text-5xl' : 'text-3xl'}>{emo(tk)}</span>;
+  return (
+    <span
+      className={`rounded-full border border-white/20 bg-white/10 ${
+        big ? 'px-4 py-1.5 text-base' : 'px-2.5 py-1 text-xs'
+      } text-white/85`}
+    >
+      {tk}
+    </span>
+  );
+}
+
+function DragSortGame({ title, hint, kind, fixed, queue, score, onScore, onReady }) {
+  const s = useSounds();
+  const [placed, setPlaced] = useState({ pedro: [...fixed.pedro], laura: [...fixed.laura] });
+  const [qi, setQi] = useState(0);
+  const [flash, setFlash] = useState(null); // { side, ok }
+  const [done, setDone] = useState(false);
+  const pedroZone = useRef(null);
+  const lauraZone = useRef(null);
+  const cur = queue[qi];
+
+  const place = (side) => {
+    if (done || !cur) return;
+    const correct = side === cur.owner;
+    onScore(correct ? 1 : -1);
+    correct ? s.acerto() : s.erro();
+    // o token sempre termina no campo certo
+    setPlaced((p) => ({ ...p, [cur.owner]: [...p[cur.owner], cur.token] }));
+    setFlash({ side: cur.owner, ok: correct });
+    setTimeout(() => setFlash(null), 700);
+    const nq = qi + 1;
+    if (nq >= queue.length) {
+      setDone(true);
+      setTimeout(onReady, 700);
+    } else {
+      setQi(nq);
+    }
+  };
+
+  const onDrop = (point) => {
+    const zones = [
+      ['pedro', pedroZone],
+      ['laura', lauraZone],
+    ];
+    for (const [side, ref] of zones) {
+      const el = ref.current;
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (point.x >= r.left && point.x <= r.right && point.y >= r.top - 12 && point.y <= r.bottom + 12) {
+        place(side);
+        return;
+      }
+    }
+    // fora dos campos → não pontua (o token volta sozinho)
+  };
+
+  const fields = [
+    { side: 'pedro', nome: 'Pedro', ref: pedroZone, txt: 'text-sky-300', bd: 'border-sky-400/40', bg: 'bg-sky-500/[0.07]' },
+    { side: 'laura', nome: 'Laura', ref: lauraZone, txt: 'text-rose-300', bd: 'border-rose-400/40', bg: 'bg-rose-500/[0.07]' },
   ];
 
   return (
-    <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-8 px-6 pb-20">
-      <Overline className="text-center">os emojis de cada um</Overline>
-      <div className="grid grid-cols-2 divide-x divide-white/10">
-        {cols.map((c) => (
-          <div key={c.nome} className="flex flex-col items-center gap-4 px-2">
-            <div className={`font-display text-sm font-semibold ${c.txt}`}>{c.nome}</div>
-            {/* do mais usado (maior) ao menos usado, um a um, com bounce */}
-            {c.list.map((e, i) => (
-              <motion.div
-                key={e}
-                className={sizes[Math.min(i, sizes.length - 1)]}
-                initial={{ scale: 0, y: 14 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{
-                  delay: (c.offset + i) * 0.32 + 0.2,
-                  type: 'spring',
-                  stiffness: 380,
-                  damping: 11,
-                }}
-              >
-                {emo(e)}
-              </motion.div>
-            ))}
+    <div className="mx-auto flex h-full max-w-md flex-col px-5 pb-24 pt-16">
+      <Overline className="text-center">{title}</Overline>
+      <div className="mt-1 text-center font-mono text-xs text-white/50">
+        placar: <span className={score < 0 ? 'text-rose-400' : 'text-gold'}>{score}</span>
+      </div>
+
+      {/* dois campos / alvos */}
+      <div className="mt-4 grid flex-1 grid-cols-2 gap-3">
+        {fields.map((f) => (
+          <div
+            key={f.side}
+            ref={f.ref}
+            className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors ${f.bd} ${f.bg} ${
+              flash?.side === f.side
+                ? flash.ok
+                  ? '!border-emerald-400 !bg-emerald-400/15'
+                  : '!border-red-400 !bg-red-400/15'
+                : ''
+            }`}
+          >
+            <div className={`font-display text-sm font-semibold ${f.txt}`}>{f.nome}</div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {placed[f.side].map((tk, i) => (
+                <Token key={`${tk}-${i}`} tk={tk} kind={kind} />
+              ))}
+            </div>
           </div>
         ))}
       </div>
+
+      {/* token atual pra arrastar */}
+      <div className="mt-5 flex h-20 items-center justify-center">
+        {!done && cur ? (
+          <motion.div
+            key={qi}
+            drag
+            dragSnapToOrigin
+            dragMomentum={false}
+            whileDrag={{ scale: 1.12, zIndex: 50 }}
+            onDragEnd={(_e, info) => onDrop(info.point)}
+            className="cursor-grab touch-none active:cursor-grabbing"
+          >
+            <Token tk={cur.token} kind={kind} big />
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm italic text-white/40">
+            pronto! 🎉
+          </motion.div>
+        )}
+      </div>
+      <div className="h-5 text-center font-mono text-[11px] tracking-widest text-white/25">{!done && hint}</div>
+    </div>
+  );
+}
+
+// Jogo dos emojis (😭 ✨ já fixos nos dois campos)
+function EmojiGame({ onReady, score, onScore }) {
+  const queue = useMemo(
+    () =>
+      shuffle([
+        { token: '❤', owner: 'pedro' },
+        { token: '🙏', owner: 'pedro' },
+        { token: '😍', owner: 'laura' },
+        { token: '🥰', owner: 'laura' },
+        { token: '🤍', owner: 'laura' },
+      ]),
+    [],
+  );
+  return (
+    <DragSortGame
+      title="de quem é esse emoji?"
+      hint="( arrasta pro campo certo )"
+      kind="emoji"
+      fixed={{ pedro: ['😭', '✨'], laura: ['😭', '✨'] }}
+      queue={queue}
+      score={score}
+      onScore={onScore}
+      onReady={onReady}
+    />
+  );
+}
+
+// Jogo das palavras (tava · amanhã · sair · melhor · casa já fixas)
+function WordsGame({ onReady, score, onScore }) {
+  const queue = useMemo(
+    () =>
+      shuffle([
+        { token: 'mozão', owner: 'pedro' },
+        { token: 'vamos', owner: 'pedro' },
+        { token: 'foda', owner: 'pedro' },
+        { token: 'poxa', owner: 'pedro' },
+        { token: 'manda', owner: 'pedro' },
+        { token: 'vida', owner: 'laura' },
+        { token: 'saudade', owner: 'laura' },
+        { token: 'mundo', owner: 'laura' },
+        { token: 'dormir', owner: 'laura' },
+        { token: 'nunca', owner: 'laura' },
+      ]),
+    [],
+  );
+  return (
+    <DragSortGame
+      title="de quem é essa palavra?"
+      hint="( arrasta pro campo certo )"
+      kind="word"
+      fixed={{ pedro: ['tava', 'amanhã', 'sair', 'melhor', 'casa'], laura: ['tava', 'amanhã', 'sair', 'melhor', 'casa'] }}
+      queue={queue}
+      score={score}
+      onScore={onScore}
+      onReady={onReady}
+    />
+  );
+}
+
+// Placar final dos dois jogos
+function Placar({ onReady, score }) {
+  useEffect(() => {
+    const t = setTimeout(onReady, 2600);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const msg =
+    score >= 13
+      ? 'Ok, você me conhece.'
+      : score >= 8
+        ? 'Quase.'
+        : score >= 4
+          ? 'Tá chegando lá.'
+          : score >= 0
+            ? 'Empate técnico.'
+            : 'vou nem falar nada 👀';
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-5 px-8 pb-20 text-center">
+      <Overline>placar dos jogos</Overline>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 3.2, duration: 0.7 }}
-        className="text-center text-sm italic leading-relaxed text-white/60"
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+        className={`font-display text-7xl font-bold ${score < 0 ? 'text-rose-400' : 'text-gold'}`}
       >
-        Vocês dois usam 😭 — mas claramente não pelo mesmo motivo.
+        {score}
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="max-w-xs font-display text-xl text-white/85"
+      >
+        {msg}
       </motion.div>
     </div>
   );
 }
 
-// Painel 4 — a palavra favorita dela (zero texto adicional)
+// Painel contador — a palavra favorita dela (zero texto adicional)
 function Panel4Amor({ onReady }) {
   const [n, setN] = useState(0);
 
   useEffect(() => {
-    // contador sobe rápido e desacelera no final
     const ctrl = animate(0, DATA.whatsapp.laura_amor_count, {
       duration: 2.6,
       delay: 0.9,
@@ -455,7 +601,7 @@ function Panel4Amor({ onReady }) {
   );
 }
 
-// Painel 5 — os apelidos de vocês
+// Painel apelidos — fecha o Cap 4
 function Panel5Apelidos({ onReady }) {
   useEffect(() => {
     const t = setTimeout(onReady, 5100);
@@ -511,56 +657,8 @@ function Panel5Apelidos({ onReady }) {
         transition={{ delay: 4.6, duration: 0.7 }}
         className="text-center text-sm italic text-white/60"
       >
-        Você inventou um apelido. Ela foi pelo caminho poético.
+        Ele inventou um apelido. Ela foi pelo caminho poético.
       </motion.div>
-    </div>
-  );
-}
-
-// Painel 6 — nuvem de palavras
-const AZUIS = ['#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6'];
-const ROSAS = ['#fbcfe8', '#f9a8d4', '#e879a0', '#ec4899'];
-
-function Cloud({ words, palette, nome, txt, startDelay }) {
-  const n = words.length;
-  const size = (i) => Math.round((26 - i * (15 / (n - 1))) * 10) / 10;
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className={`font-display text-sm font-semibold ${txt}`}>{nome}</div>
-      <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5">
-        {words.map((w, i) => (
-          <motion.span
-            key={w}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: Math.max(1 - i * 0.035, 0.5), y: 0 }}
-            transition={{ delay: startDelay + i * 0.08, duration: 0.5 }}
-            style={{
-              fontSize: `${size(i)}px`,
-              color: palette[i % palette.length],
-              fontWeight: i < 3 ? 600 : i < 7 ? 500 : 400,
-            }}
-          >
-            {w}
-          </motion.span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Panel6Nuvem({ onReady }) {
-  useEffect(() => {
-    const t = setTimeout(onReady, 2900);
-    return () => clearTimeout(t);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-8 px-4 pb-20">
-      <Overline className="text-center">as palavras de vocês</Overline>
-      <div className="grid grid-cols-2 gap-3">
-        <Cloud words={DATA.pedro_top_words} palette={AZUIS} nome="Pedro" txt="text-sky-300" startDelay={0.2} />
-        <Cloud words={DATA.laura_top_words} palette={ROSAS} nome="Laura" txt="text-rose-300" startDelay={0.5} />
-      </div>
     </div>
   );
 }

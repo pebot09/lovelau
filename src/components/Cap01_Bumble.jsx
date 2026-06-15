@@ -9,6 +9,8 @@ import {
 import useSounds from '../hooks/useSounds';
 
 const BUMBLE_YELLOW = '#ffc629';
+const LAURA_PHOTO =
+  'https://res.cloudinary.com/dhqowhiqr/image/upload/w_800,q_auto,f_auto/Captura_de_Tela_2026-06-14_%C3%A0s_6.13.10_PM_r03we6.jpg';
 
 // partículas da explosão de corações do match
 const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
@@ -84,22 +86,36 @@ export default function Cap01_Bumble({ onNext }) {
           style={{ x, rotate, borderColor, boxShadow }}
           className="relative h-[min(62vh,540px)] w-[min(86vw,330px)] cursor-grab touch-pan-y overflow-hidden rounded-3xl border bg-neutral-900 active:cursor-grabbing"
         >
-          {/* PLACEHOLDER — foto do Pedro: trocar este bloco por
-              <img src="..." className="absolute inset-0 h-full w-full object-cover" />
-              Pedro vai inserir depois */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#27203a] via-[#1c2a40] to-[#11202e]">
-            <div className="text-6xl">🏺</div>
-            <div className="font-mono text-[11px] tracking-widest text-white/30">[ foto aqui ]</div>
-          </div>
+          {/* foto de perfil da Laura (fallback no gradiente se falhar) */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#27203a] via-[#1c2a40] to-[#11202e]" />
+          <img
+            src={LAURA_PHOTO}
+            className="absolute inset-0 h-full w-full object-cover"
+            alt=""
+            draggable={false}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
 
           {/* info sobre a foto */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-5 pb-5 pt-16">
             <div className="font-display text-2xl font-bold text-white">
-              Pedro, 28 <span className="align-middle text-base text-sky-400">✔</span>
+              Laura, 25 <span className="align-middle text-base text-sky-400">✔</span>
             </div>
-            {/* PLACEHOLDER — bio: Pedro vai escrever depois */}
-            <div className="mt-1 text-sm italic text-white/45">[ bio em construção… ]</div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-0.5 text-xs text-white/55">a 2 km de você</div>
+            <div className="mt-1.5 text-sm italic text-white/80">o amor da sua vida</div>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {['♋ Canceriana', '💑 Relacionamento sério'].map((chip) => (
+                <span
+                  key={chip}
+                  className="rounded-full border border-rose-300/40 bg-rose-400/10 px-3 py-1 text-xs text-rose-100/90"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               {['🎵 Música', '🏺 Cerâmica', '💻 Tech'].map((chip) => (
                 <span key={chip} className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white/85">
                   {chip}

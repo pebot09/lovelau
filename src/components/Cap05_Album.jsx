@@ -149,7 +149,11 @@ function ArrowButton({ onClick, delay = 0.8 }) {
 function Scene({ items, caption, gold = false, onNext, btnDelay = 0.8 }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
-      {items.length === 1 ? <Media item={items[0]} /> : <Carousel items={items} />}
+      {items.length === 1 ? (
+        <Media item={items[0]} fit="contain" />
+      ) : (
+        <Carousel items={items} fit="contain" />
+      )}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/75 to-transparent" />
 
@@ -197,7 +201,7 @@ const FIC_FOTOS = [
 ];
 
 // ordem correta (cronológica)
-const FIC_ORDEM = ['IMG_2363', '22E65995', 'IMG_2227', 'IMG_0008'];
+const FIC_ORDEM = ['IMG_2227', 'IMG_2363', '22E65995', 'IMG_0008'];
 
 function FicantesGame({ onNext }) {
   const s = useSounds();
@@ -206,6 +210,7 @@ function FicantesGame({ onNext }) {
   const [expanded, setExpanded] = useState(null); // src ampliado
   const [victory, setVictory] = useState(false);
   const slotRefs = useRef([]);
+  const downPos = useRef({ x: 0, y: 0 }); // posição do pointerdown p/ distinguir tap de arrasto
 
   // grade embaralhada (estável durante o jogo)
   const shuffled = useMemo(
@@ -263,12 +268,20 @@ function FicantesGame({ onNext }) {
               dragMomentum={false}
               whileDrag={{ scale: 1.07, zIndex: 40 }}
               onDragEnd={(_e, info) => onDrop(f, info.point)}
-              onTap={() => setExpanded(f.src)}
+              onPointerDown={(e) => {
+                downPos.current = { x: e.clientX, y: e.clientY };
+              }}
+              onPointerUp={(e) => {
+                // só amplia em tela cheia se foi um tap (movimento < 10px), não arrasto
+                const dx = e.clientX - downPos.current.x;
+                const dy = e.clientY - downPos.current.y;
+                if (Math.hypot(dx, dy) < 10) setExpanded(f.src);
+              }}
               className="relative cursor-grab touch-none active:cursor-grabbing"
             >
               <img
                 src={f.src}
-                className="pointer-events-none aspect-[3/4] w-full rounded-xl border border-white/10 object-cover shadow-lg"
+                className="pointer-events-none aspect-[3/4] w-full rounded-xl border border-white/10 bg-black/20 object-contain shadow-lg"
                 draggable={false}
                 alt=""
               />
@@ -305,7 +318,7 @@ function FicantesGame({ onNext }) {
                     src={foto.src}
                     initial={{ scale: 1.25, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="h-full w-full cursor-pointer object-cover"
+                    className="h-full w-full cursor-pointer object-contain"
                     onClick={() => setExpanded(foto.src)}
                     draggable={false}
                     alt=""
@@ -475,13 +488,10 @@ function GuessWhere({ cfg, onDone }) {
   return (
     <div className="mx-auto flex h-full max-w-md flex-col justify-center gap-5 px-6">
       <div className={`relative h-[40vh] overflow-hidden rounded-2xl border-2 transition-colors ${frame}`}>
-        {/* zoom 3x cortado e levemente desfocado; acertou/errou → zoom out */}
-        <motion.img
+        {/* foto inteira e limpa desde o início (sem zoom/desfoque) */}
+        <img
           src={cfg.src}
-          initial={false}
-          animate={chosen ? { scale: 1, filter: 'blur(0px)' } : { scale: 3, filter: 'blur(3px)' }}
-          transition={{ duration: 1.2, ease: 'easeInOut' }}
-          className="h-full w-full object-cover"
+          className="h-full w-full bg-black/20 object-contain"
           draggable={false}
           alt=""
         />
@@ -607,7 +617,7 @@ function Hoje({ onNext }) {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
-      <Media item={img(PHOTOS.IMG_4637)} />
+      <Media item={img(PHOTOS.IMG_4637)} fit="contain" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/75 to-transparent" />
       {cap && (
         <motion.div
@@ -716,6 +726,7 @@ function FoodAlbum({ onDone }) {
       {/* foto de comida atual — sem data, sem legenda, sem numeração */}
       <motion.div key={i} initial={{ opacity: 0.45 }} animate={{ opacity: 1 }} transition={{ duration: 0.14 }} className="absolute inset-0">
         <Media
+          fit="contain"
           item={{
             type: 'img',
             src: FOOD_PHOTOS[i],
